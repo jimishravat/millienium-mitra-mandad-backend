@@ -1,7 +1,6 @@
 import pkg from 'jsonwebtoken';
 const { sign, verify } = pkg;
 import otpGenerator from 'otp-generator';
-import { auth } from './config/firebase.js';
 import bcrypt from 'bcryptjs';
 
 export const generateOTP = () => {

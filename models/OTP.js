@@ -23,14 +23,7 @@ const OTPSchema = new Schema({
     OTPCreatedTime: {
         type: Date,
     },
-    firebaseSessionID: {
-        type: String,
-        description: 'Firebase verification session ID for tracking'
-    },
-    verificationID: {
-        type: String,
-        description: 'Firebase verification ID for OTP validation'
-    }
+   
 }, { timestamps: true });
 
 
