@@ -14,6 +14,10 @@ import { dataManager } from './config/dataManager.js';
 config();
 
 const app = express();
+
+// Database connection status tracker
+let isDbConnected = false;
+
 // Middleware
 const allowedOrigins = [
   'http://localhost:3000',
@@ -35,6 +39,7 @@ app.use(cookieParser());
 // Database connection
 connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mitramandal')
   .then(async () => {
+    isDbConnected = true;
     console.log('✅ MongoDB connected successfully');
     
     // Seed default admin user if no users exist
@@ -43,7 +48,10 @@ connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mitramandal')
     // populate the DataManager
     await dataManager.loadData();
   })
-  .catch((err) => console.error('❌ MongoDB connection error:', err));
+  .catch((err) => {
+    isDbConnected = false;
+    console.error('❌ MongoDB connection error:', err);
+  });
 
 // Seeding function
 const seedDefaultAdmin = async () => {
@@ -107,8 +115,22 @@ const seedDefaultAdmin = async () => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', message: 'Server is running' });
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'Server is running',
+    database: isDbConnected ? 'connected' : 'disconnected'
+  });
 });
+
+// Database status endpoint
+app.get('/api/db-status', (req, res) => {
+  res.status(isDbConnected ? 200 : 503).json({
+    connected: isDbConnected,
+    message: isDbConnected ? 'Database is connected' : 'Database is disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
 app.use(router);
 // 404 handler
 app.use((req, res) => {
