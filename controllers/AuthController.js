@@ -75,14 +75,14 @@ export const changePasswordController = async (req, res) => {
         return res.status(400).json({ success: false, message: "Request body is missing" });
     }
 
-    const { oldPassword, newPassword, verifyNewPassword } = req.body;
+    const { oldPassword, newPassword, verifyPassword } = req.body;
 
     // Validate inputs
-    if (!oldPassword || !newPassword || !verifyNewPassword) {
+    if (!oldPassword || !newPassword || !verifyPassword) {
         return res.status(400).json({ success: false, message: "All fields are required" });
     }
 
-    if (newPassword !== verifyNewPassword) {
+    if (newPassword !== verifyPassword) {
         return res.status(400).json({ success: false, message: "New passwords do not match" });
     }
 
