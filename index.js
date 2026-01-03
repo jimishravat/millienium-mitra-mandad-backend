@@ -8,7 +8,7 @@ import cookieParser from 'cookie-parser';
 import User from './models/User.js';
 import Admin from './models/Admin.js';
 import { hashPassword } from './helper.js';
-import { dataManager } from './config/dataManager.js';
+
 
 // Load environment variables
 config();
@@ -45,8 +45,7 @@ connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mitramandal')
     // Seed default admin user if no users exist
     await seedDefaultAdmin();
 
-    // populate the DataManager
-    await dataManager.loadData();
+   
   })
   .catch((err) => {
     isDbConnected = false;

@@ -83,10 +83,7 @@ userRoutes.post("/book-transaction-history", getBookTransactionHistory);
 userRoutes.post("/get-map-data", async (req, res) => {
   try {
     const data = {
-      userMap: Array.from(dataManager.userMap.entries()),
-      bookMap: Array.from(dataManager.bookMap.entries()),
-      transactionMap: Array.from(dataManager.transactionMap.entries()),
-      lastSyncTime: dataManager.lastSyncTime,
+      ...(await dataManager.getAllMapsData()),
     };
     return res.status(200).json({ success: true, data });
   } catch (error) {

@@ -8,7 +8,7 @@ import { hashPassword } from "../helper.js";
 import User from "../models/User.js";
 import Books from "../models/Books.js";
 import Transactions from "../models/Transactions.js";
-import { dataManager } from "../config/dataManager.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -240,19 +240,19 @@ class DataSeeder {
       //   await this.seedAdmin(admin);
 
       console.log("\n✅ Data seeding completed successfully!");
-      await dataManager.loadData();
+      // await dataManager.loadData();
 
-      // Convert Maps to objects and save to JSON file
-      const dataSnapshot = {
-        timestamp: new Date().toISOString(),
-        userMap: Object.fromEntries(dataManager.userMap),
-        bookMap: Object.fromEntries(dataManager.bookMap),
-        transactionMap: Object.fromEntries(dataManager.transactionMap),
-      };
+      // // Convert Maps to objects and save to JSON file
+      // const dataSnapshot = {
+      //   timestamp: new Date().toISOString(),
+      //   userMap: Object.fromEntries(dataManager.userMap),
+      //   bookMap: Object.fromEntries(dataManager.bookMap),
+      //   transactionMap: Object.fromEntries(dataManager.transactionMap),
+      // };
 
-      const jsonFilePath = path.join(__dirname, "user.json");
-      fs.writeFileSync(jsonFilePath, JSON.stringify(dataSnapshot, null, 2));
-      console.log(`\n✅ Data snapshot saved to: ${jsonFilePath}`);
+      // const jsonFilePath = path.join(__dirname, "user.json");
+      // fs.writeFileSync(jsonFilePath, JSON.stringify(dataSnapshot, null, 2));
+      // console.log(`\n✅ Data snapshot saved to: ${jsonFilePath}`);
 
       process.exit(0);
     } catch (error) {

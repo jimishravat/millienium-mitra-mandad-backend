@@ -86,3 +86,5 @@ export const comparePassword = async (plainPassword, hashedPassword) => {
         throw error;
     }
 }
+
+
