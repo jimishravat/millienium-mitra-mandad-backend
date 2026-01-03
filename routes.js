@@ -80,7 +80,7 @@ userRoutes.post("/user-details", getUserDetails);
 userRoutes.post("/book-details", getUserBooksDetails);
 userRoutes.post("/book-transaction-history", getBookTransactionHistory);
 
-userRoutes.post("/get-map-data", async (req, res) => {
+userRoutes.get("/get-map-data", async (req, res) => {
   try {
     const data = {
       ...(await dataManager.getAllMapsData()),
