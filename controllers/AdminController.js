@@ -1,8 +1,10 @@
+import { dataManager } from "../config/dataManager.js";
 import { generateUserID, verifyJWTToken, hashPassword } from "../helper.js";
 import Admin from "../models/Admin.js";
 import Books from "../models/Books.js";
 import Transactions from "../models/Transactions.js";
 import User from "../models/User.js";
+import crypto from "crypto";
 
 export const getAllUserDetails = async (req, res) => {
   const token = req.cookies.token;
@@ -12,7 +14,7 @@ export const getAllUserDetails = async (req, res) => {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
 
-  const allUserDetails = await User.find({}).select(
+  const allUserDetails = await User.find({ userID: { $ne: "00000" } }).select(
     "-_id -__v -createdAt -updatedAt -password"
   );
 
@@ -36,7 +38,7 @@ export const getAllBooksDetails = async (req, res) => {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
   const allBooksDetails = await Books.find({}).select(
-    "-_id -__v -createdAt -updatedAt"
+    " -__v -createdAt -updatedAt"
   );
   if (!allBooksDetails) {
     return res
@@ -56,39 +58,29 @@ export const getUserBookTransactionHistory = async (req, res) => {
   if (!decoded) {
     return res.status(401).json({ success: false, message: "Unauthorized" });
   }
-  const page = parseInt(req.query.page) || 1;
-  const limit = parseInt(req.query.limit) || 10;
-  const skip = (page - 1) * limit;
-  const totalTransactions = await Transactions.countDocuments({
-    book: req.body.bookID,
-  });
-  const transactions = await Transactions.find({
-    book: req.body.bookID,
-  })
-    .select(
-      "userID bookID principalAmount loanInterestAmount loanEMI totalAmount beforeTransactionAmount"
-    )
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit);
 
-  const totalPages = Math.ceil(totalTransactions / limit);
+  const transactions = await Transactions.find({})
+    .select(
+      "userID bookID principalAmount loanInterestAmount loanEMI settlementAmount totalAmount penaltyAmount amountReturned createdAt"
+    )
+    .sort({ createdAt: -1 });
+
+  // Group transactions by bookID
+  const groupedByBook = {};
+
+  transactions.forEach((transaction) => {
+    const bookID = transaction.bookID;
+    if (!groupedByBook[bookID]) {
+      groupedByBook[bookID] = [];
+    }
+    groupedByBook[bookID].push(transaction);
+  });
 
   return res.status(200).json({
     success: true,
-    data: {
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalTransactions,
-        limit,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1,
-      },
-      count: totalTransactions,
-      transactions,
-    },
-    message: "Transactions fetched successfully",
+    data: groupedByBook,
+    totalTransactions: transactions.length,
+    message: "Transactions fetched successfully grouped by book",
   });
 };
 
@@ -168,7 +160,15 @@ export const updateCurrentTotalPrincipalAmount = async (req, res) => {
 
 // Helper function to handle transaction logic for both create and update
 // Modifies bookDetails object by reference, no return value needed
-const handleTransactionLogic = (transaction, bookDetails, transactionType, loanTakenAmount, settlementAmount, loanAmount, currentPrincipalAmount) => {
+const handleTransactionLogic = (
+  transaction,
+  bookDetails,
+  transactionType,
+  loanTakenAmount,
+  settlementAmount,
+  loanAmount,
+  currentPrincipalAmount
+) => {
   if (transactionType === "LOAN") {
     bookDetails.isLoanActive = true;
     bookDetails.loanAmount = loanAmount + loanTakenAmount;
@@ -177,7 +177,8 @@ const handleTransactionLogic = (transaction, bookDetails, transactionType, loanT
     bookDetails.isLoanActive = false;
   } else {
     // REGULAR transaction
-    bookDetails.currentPrincipalAmount = currentPrincipalAmount + transaction.principalAmount;
+    bookDetails.currentPrincipalAmount =
+      currentPrincipalAmount + transaction.principalAmount;
     if (bookDetails.loanAmount > 0) {
       bookDetails.loanAmount = Math.max(0, loanAmount - transaction.loanEMI);
     }
@@ -208,13 +209,23 @@ export const makeTransactionForBook = async (req, res) => {
   } = req.body;
 
   // Validate amounts are non-negative
-  if (principalAmount < 0 || loanEMI < 0 || loanInterestAmount < 0 || penaltyAmount < 0) {
-    return res.status(400).json({ success: false, message: "Amounts cannot be negative" });
+  if (
+    principalAmount < 0 ||
+    loanEMI < 0 ||
+    loanInterestAmount < 0 ||
+    penaltyAmount < 0
+  ) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Amounts cannot be negative" });
   }
 
   // Validate required fields
   if (!userID || !bookID || !transactionType) {
-    return res.status(400).json({ success: false, message: "userID, bookID, and transactionType are required" });
+    return res.status(400).json({
+      success: false,
+      message: "userID, bookID, and transactionType are required",
+    });
   }
 
   const bookDetails = await Books.findOne({ bookID });
@@ -227,8 +238,9 @@ export const makeTransactionForBook = async (req, res) => {
     .split(",")
     .map((id) => id.trim());
 
-  const totalAmount = principalAmount + loanInterestAmount + loanEMI + penaltyAmount;
-  
+  const totalAmount =
+    principalAmount + loanInterestAmount + loanEMI + penaltyAmount;
+
   const transaction = await Transactions.create({
     userID: userIDs,
     bookID,
@@ -254,8 +266,16 @@ export const makeTransactionForBook = async (req, res) => {
     })
   );
 
-  handleTransactionLogic(transaction, bookDetails, transactionType, loanTakenAmount, settlementAmount, loanAmount, currentPrincipalAmount);
-  
+  handleTransactionLogic(
+    transaction,
+    bookDetails,
+    transactionType,
+    loanTakenAmount,
+    settlementAmount,
+    loanAmount,
+    currentPrincipalAmount
+  );
+
   bookDetails.transactionHistory.push(transaction._id);
   await bookDetails.save();
 
@@ -318,18 +338,29 @@ export const updateTransaction = async (req, res) => {
 
   // Validate required fields
   if (!transactionID) {
-    return res.status(400).json({ success: false, message: "transactionID is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "transactionID is required" });
   }
 
   // Validate amounts are non-negative
-  if (principalAmount < 0 || loanEMI < 0 || loanInterestAmount < 0 || penaltyAmount < 0) {
-    return res.status(400).json({ success: false, message: "Amounts cannot be negative" });
+  if (
+    principalAmount < 0 ||
+    loanEMI < 0 ||
+    loanInterestAmount < 0 ||
+    penaltyAmount < 0
+  ) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Amounts cannot be negative" });
   }
 
   // Find the existing transaction
   const transaction = await Transactions.findById(transactionID);
   if (!transaction) {
-    return res.status(404).json({ success: false, message: "Transaction not found" });
+    return res
+      .status(404)
+      .json({ success: false, message: "Transaction not found" });
   }
 
   // Find the book
@@ -352,7 +383,8 @@ export const updateTransaction = async (req, res) => {
   transaction.penaltyAmount = penaltyAmount;
   transaction.amountReturned = amountReturned;
   transaction.returnedAmountDescription = returnedAmountDescription;
-  transaction.totalAmount = principalAmount + loanInterestAmount + loanEMI + penaltyAmount;
+  transaction.totalAmount =
+    principalAmount + loanInterestAmount + loanEMI + penaltyAmount;
   if (transactionType) {
     transaction.transactionType = transactionType;
   }
@@ -362,13 +394,19 @@ export const updateTransaction = async (req, res) => {
 
   // Reverse the old transaction's effect on the book
   if (oldTransactionType === "LOAN") {
-    bookDetails.loanAmount = Math.max(0, bookDetails.loanAmount - (loanTakenAmount || 0));
+    bookDetails.loanAmount = Math.max(
+      0,
+      bookDetails.loanAmount - (loanTakenAmount || 0)
+    );
   } else if (oldTransactionType === "SETTLEMENT") {
     bookDetails.settlementAmount = 0;
     bookDetails.isLoanActive = true;
   } else {
     // REGULAR transaction - reverse the changes
-    bookDetails.currentPrincipalAmount = Math.max(0, bookDetails.currentPrincipalAmount - oldPrincipalAmount);
+    bookDetails.currentPrincipalAmount = Math.max(
+      0,
+      bookDetails.currentPrincipalAmount - oldPrincipalAmount
+    );
     if (originalLoanAmount > 0) {
       bookDetails.loanAmount = bookDetails.loanAmount + oldLoanEMI;
     }
@@ -378,7 +416,15 @@ export const updateTransaction = async (req, res) => {
   // Apply the new transaction's effect
   const { loanAmount, currentPrincipalAmount } = bookDetails;
   const finalTransactionType = transactionType || oldTransactionType;
-  handleTransactionLogic(transaction, bookDetails, finalTransactionType, loanTakenAmount, settlementAmount, loanAmount, currentPrincipalAmount);
+  handleTransactionLogic(
+    transaction,
+    bookDetails,
+    finalTransactionType,
+    loanTakenAmount,
+    settlementAmount,
+    loanAmount,
+    currentPrincipalAmount
+  );
 
   await bookDetails.save();
 
@@ -542,6 +588,7 @@ export const toggleBookIssuedToUser = async (req, res) => {
     );
     book.userID = book.userID.filter((uId) => uId !== userID);
   }
+  book.isActive = !issueBook;
   await user.save();
   await book.save();
   return res.status(200).json({
@@ -623,5 +670,53 @@ export const toggleUserAdmin = async (req, res) => {
     message: `User has been ${
       makeAdmin ? "granted" : "revoked"
     } admin privileges successfully`,
+  });
+};
+
+export const getTheExisitingAdminUserIDs = async (req, res) => {
+  const token = req.cookies.token;
+  const decoded = verifyJWTToken(token);
+  if (!decoded) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+  const adminDoc = await Admin.findOne();
+  if (!adminDoc) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Admin document not found" });
+  }
+  return res.status(200).json({
+    success: true,
+    data: { adminUserIDs: adminDoc.adminUserID },
+    message: "Admin user IDs fetched successfully",
+  });
+};
+
+// Create one session ID for the transaction
+export const startSessionForTransaction = async (req, res) => {
+  const token = req.cookies.token;
+  const decoded = verifyJWTToken(token);
+
+  if (!decoded) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  // create a unique sessionID
+  const sessionID = crypto.randomUUID();
+
+  dataManager.startSession(sessionID);
+
+  const options = {
+    expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    httpOnly: true, // Prevents XSS attacks
+    secure: process.env.NODE_ENV === "production", // HTTPS only in production
+    sameSite: "strict", // CSRF protection
+  };
+
+  // send this in the cookie
+  return res.status(200).cookie("sessionID", sessionID, options).json({
+    success: true,
+    data: { sessionID },
+    message: "Session ID created successfully",
   });
 };

@@ -142,7 +142,7 @@ export const getUserBooksDetails = async (req, res) => {
     const userBookObjectIDs = dataManager.userMap.get(
       decoded.userID
     ).booksIssued;
-    for (const bookObjectID in userBookObjectIDs) {
+    for (const bookObjectID of userBookObjectIDs) {
       if (dataManager.bookMap.has(bookObjectID)) {
         bookDetails.push(dataManager.getBookByObjectID(bookObjectID));
       } else {
@@ -255,6 +255,7 @@ export const getBookTransactionHistory = async (req, res) => {
 
     groupedTransactions[year][month].push(transaction);
   });
+  
 
   // Sort by year descending and month descending
   const sortedGroupedTransactions = {};

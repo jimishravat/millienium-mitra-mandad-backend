@@ -2,10 +2,10 @@ import { Schema, model } from "mongoose";
 
 const TransactionSchema = new Schema(
   {
-    transactionType : {
-        type: String,
-        required: true,
-        enum : ['LOAN', 'REGULAR', 'SETTLEMENT']
+    transactionType: {
+      type: String,
+      required: true,
+      enum: ["LOAN", "REGULAR", "SETTLEMENT"],
     },
     isDeleted: {
       type: Boolean,
@@ -73,18 +73,6 @@ const TransactionSchema = new Schema(
     transactionBy: {
       type: String,
       required: true,
-    },
-    beforeTransactionAmount: {
-      loanAmount: {
-        type: Number,
-        required: true,
-        default: 0,
-      },
-      principalAmount: {
-        type: Number,
-        required: true,
-        default: 0,
-      },
     },
   },
   { timestamps: true }

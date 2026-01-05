@@ -18,6 +18,7 @@ import {
   deleteTransaction,
   getAllBooksDetails,
   getAllUserDetails,
+  getTheExisitingAdminUserIDs,
   getUserBookTransactionHistory,
   makeTransactionForBook,
   toggleBookIssuedToUser,
@@ -74,6 +75,11 @@ adminRoutes.post(
   changePasswordByAdmin
 );
 adminRoutes.post("/toggle-admin-user", checkAdminUser, toggleUserAdmin);
+adminRoutes.post(
+  "/get-existing-admin-users",
+  checkAdminUser,
+  getTheExisitingAdminUserIDs
+);
 
 // user routes
 userRoutes.post("/user-details", getUserDetails);

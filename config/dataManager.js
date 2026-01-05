@@ -8,6 +8,7 @@ class DataManager {
     this.bookIDMap = new Map(); // Key: bookID, Value: bookObjectID
     this.transactionMap = new Map(); // Key: transactionObjectID, Value: Transaction Object
     this.userMonthlyTransactionIDs = new Map(); // Key: "userID_year_month_bookID", Value: [transactionIDs]
+    this.sessionTransactionMap = new Map(); // Key: sessionID, Value: [transactionObjectIDs]
   }
 
   async setUserMap(userObject) {
@@ -90,7 +91,35 @@ class DataManager {
           Array.from(value),
         ])
       ),
+      sessionTransactionMap: Object.fromEntries(this.sessionTransactionMap),
     };
+  }
+
+  async startSession(sessionID) {
+    this.sessionTransactionMap.set(sessionID, []);
+  }
+  async addTransactionToSession(sessionID, transactionObjectID) {
+    if (this.sessionTransactionMap.has(sessionID)) {
+      if (
+        !this.sessionTransactionMap.get(sessionID).includes(transactionObjectID)
+      ) {
+        this.sessionTransactionMap.get(sessionID).push(transactionObjectID);
+      }
+    }
+  }
+  async removeTransactionFromSession(sessionID, transactionObjectID) {
+    if (this.sessionTransactionMap.has(sessionID)) {
+      const updatedArray = this.sessionTransactionMap
+        .get(sessionID)
+        .filter((id) => id !== transactionObjectID);
+      this.sessionTransactionMap.set(sessionID, updatedArray);
+    }
+  }
+  async getSessionTransactions(sessionID) {
+    return this.sessionTransactionMap.get(sessionID) || [];
+  }
+  async endSession(sessionID) {
+    this.sessionTransactionMap.delete(sessionID);
   }
 }
 
