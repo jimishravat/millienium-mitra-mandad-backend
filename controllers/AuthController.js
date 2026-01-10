@@ -48,7 +48,8 @@ export const loginController = async (req, res) => {
             expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
             httpOnly: true, // Prevents XSS attacks
             secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-            sameSite: 'strict' // CSRF protection
+            sameSite: 'none', // CSRF protection
+            secure : true
         };
 
         res.status(200)
@@ -145,7 +146,8 @@ export const logoutController = async (req, res) => {
             expires: new Date(0),
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict'
+            sameSite: 'none',
+            secure : true,
         })
         .json({ success: true, message: "Logged out successfully" });
 }
