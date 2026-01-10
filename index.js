@@ -21,7 +21,6 @@ let isDbConnected = false;
 // Middleware
 const allowedOrigins = [
   'http://localhost:3000',
-  'http://192.168.29.123:3000',
   "https://millenium-mitra-mandad-frontend.onrender.com",
   process.env.FRONTEND_URL
 ].filter(Boolean);
@@ -43,6 +42,7 @@ app.use(cors({
 app.use(json());
 app.use(urlencoded({ extended: true }));
 app.use(cookieParser());
+app.set("trust proxy", 1);
 
 // Database connection
 connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mitramandal')

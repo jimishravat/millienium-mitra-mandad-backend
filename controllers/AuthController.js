@@ -49,7 +49,6 @@ export const loginController = async (req, res) => {
             httpOnly: true, // Prevents XSS attacks
             secure: process.env.NODE_ENV === 'production', // HTTPS only in production
             sameSite: 'none', // CSRF protection
-            secure : true
         };
 
         res.status(200)
@@ -155,6 +154,8 @@ export const logoutController = async (req, res) => {
 export const checkUserSessionController = async (req, res) => {
     // Get token from cookies
     const token = req.cookies.token;
+    console.log("Cookies received:", req.cookies);
+    console.log("Checking user session for token:", token);
 
     // If no token found in cookies
     if (!token) {
