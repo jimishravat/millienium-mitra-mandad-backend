@@ -18,16 +18,30 @@ const app = express();
 let isDbConnected = false;
 
 // Middleware
-const allowedOrigins = [
-  "http://localhost:3000",
-  "http://192.168.29.123:3000",
-  process.env.FRONTEND_URL,
-].filter(Boolean);
- 
+const allowedOrigins = new Set(
+  [
+    "http://localhost:3000",
+    "http://192.168.29.123:3000",
+    "https://fe-mm.jimishravat.in",
+    process.env.FRONTEND_URL,
+  ].filter(Boolean)
+);
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // VERY IMPORTANT:
+      // Allow requests with no Origin (Render health checks, server-to-server)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked: ${origin}`));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -39,7 +53,7 @@ app.use(urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // Database connection
-connect(process.env.MONGODB_URI || "mongodb://localhost:27017/mitramandal")
+connect(process.env.MONGODB_URI)
   .then(async () => {
     isDbConnected = true;
     console.log("✅ MongoDB connected successfully");
