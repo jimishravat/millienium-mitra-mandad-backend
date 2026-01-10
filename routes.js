@@ -108,4 +108,27 @@ router.use("/api/v1/auth", commonRoutes);
 router.use("/api/v1/user", userRoutes);
 router.use("/api/v1/admin", adminRoutes);
 
+/**
+ * This API endpoint is used to seed initial data into the database.
+ * In the production also when this will be executed, it will run the seed.js script
+ * and seed the data 
+ */
+router.post("/api/v1/seed/data", async (req, res) => {
+  try {
+    // Import the seed script dynamically
+    const { default: seedScript } = await import("./scripts/seed.js");
+    
+    return res.status(200).json({
+      success: true,
+      message: "Seed data process initiated successfully. Check server logs for detailed output."
+    });
+  } catch (error) {
+    console.error("❌ Error during seeding:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error during data seeding",
+      error: error.message
+    });
+  }
+});
 export default router;

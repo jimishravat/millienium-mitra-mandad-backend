@@ -166,6 +166,7 @@ class DataSeeder {
             transData.isLoanTaken === "true" || transData.isLoanTaken === true,
           settlementAmount: Number(transData.settlementAmount || 0),
           transactionType: transData.transactionType,
+          loanAmount : Number(transData.loanAmount),
           totalAmount:
             Number(transData.principalAmount) +
             Number(transData.loanEMI) +
