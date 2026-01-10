@@ -24,6 +24,7 @@ const allowedOrigins = [
   "https://fe-mm.jimishravat.in",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
+ 
 
 app.use(
   cors({
