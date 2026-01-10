@@ -47,8 +47,9 @@ export const loginController = async (req, res) => {
         const options = {
             expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
             httpOnly: true, // Prevents XSS attacks
-            secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-            sameSite: 'none', // CSRF protection
+            secure: true, // Required for cross-domain cookies with sameSite: 'none'
+            sameSite: 'none', // Required for cross-domain cookies (frontend.onrender.com → backend.onrender.com)
+            path: '/'
         };
 
         res.status(200)
@@ -144,9 +145,9 @@ export const logoutController = async (req, res) => {
         .cookie('token', '', {
             expires: new Date(0),
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'none',
-            secure : true,
+            secure: true, // Required for cross-domain cookies with sameSite: 'none'
+            sameSite: 'none', // Required for cross-domain cookies
+            path: '/'
         })
         .json({ success: true, message: "Logged out successfully" });
 }
@@ -154,7 +155,7 @@ export const logoutController = async (req, res) => {
 export const checkUserSessionController = async (req, res) => {
     // Get token from cookies
     const token = req.cookies.token;
-    console.log("Cookies received:", req.cookies);
+    console.log("Cookies received:", JSON.stringify(req.cookies));
     console.log("Checking user session for token:", token);
 
     // If no token found in cookies

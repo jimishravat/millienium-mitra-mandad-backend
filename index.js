@@ -39,10 +39,33 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie'],
   optionsSuccessStatus: 200
 }));
-app.use(json());
-app.use(urlencoded({ extended: true }));
+
+// Cookie parser middleware
 app.use(cookieParser());
+
+// JSON and URL encoded middleware
+app.use(json({ limit: '50mb' }));
+app.use(urlencoded({ extended: true, limit: '50mb' }));
+
+// Trust proxy for Render deployment
 app.set("trust proxy", 1);
+
+// Default cookie options for cross-domain cookies
+app.use((req, res, next) => {
+  // Override res.cookie to set default options for cross-domain cookies
+  const originalCookie = res.cookie;
+  res.cookie = function(name, val, options = {}) {
+    const defaultOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'production',
+      sameSite: 'none', // Required for cross-domain cookies
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      ...options
+    };
+    return originalCookie.call(this, name, val, defaultOptions);
+  };
+  next();
+});
 
 // Database connection
 connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/mitramandal')
