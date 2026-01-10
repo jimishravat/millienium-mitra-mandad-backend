@@ -16,7 +16,9 @@ import {
   addUser,
   changePasswordByAdmin,
   deleteTransaction,
+  getAdminConfiguration,
   getAllBooksDetails,
+  getAllTransactions,
   getAllUserDetails,
   getTheExisitingAdminUserIDs,
   getUserBookTransactionHistory,
@@ -51,12 +53,14 @@ adminRoutes.post(
   checkAdminUser,
   getUserBookTransactionHistory
 );
-adminRoutes.post("/config", checkAdminUser, updateTheConfiguration);
+adminRoutes.post("/get-config", checkAdminUser, getAdminConfiguration);
+adminRoutes.post("/update-config", checkAdminUser, updateTheConfiguration);
 adminRoutes.post(
   "/update-current-total-principal-amount",
   checkAdminUser,
   updateCurrentTotalPrincipalAmount
 );
+adminRoutes.post("/get-transactions", checkAdminUser, getAllTransactions);
 adminRoutes.post("/add-transaction", checkAdminUser, makeTransactionForBook);
 adminRoutes.post("/delete-transaction", checkAdminUser, deleteTransaction);
 adminRoutes.post("/update-transaction", checkAdminUser, updateTransaction);

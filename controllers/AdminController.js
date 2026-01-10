@@ -52,6 +52,75 @@ export const getAllBooksDetails = async (req, res) => {
   });
 };
 
+/***
+ * Get all transactions
+ * For the current month and year it fetches all the transactions
+ * if there are query params month and year it fetches for that month and year
+ * if no query params are provided it fetches for the current month and year
+ */
+export const getAllTransactions = async (req, res) => {
+  const token = req.cookies.token;
+  const decoded = verifyJWTToken(token);
+  if (!decoded) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  // Get month and year from request body or use current month/year
+  let { month, year } = req.body;
+  const currentDate = new Date();
+
+  if (!month) {
+    month = currentDate.getMonth() + 1; // getMonth() returns 0-11
+  } else {
+    month = parseInt(month);
+  }
+
+  if (!year) {
+    year = currentDate.getFullYear();
+  } else {
+    year = parseInt(year);
+  }
+
+  // Validate month
+  if (month < 1 || month > 12) {
+    return res.status(400).json({
+      success: false,
+      message: "Invalid month. Month should be between 1 and 12",
+    });
+  }
+
+  // Create start and end dates for the month
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59, 999); // Last day of the month
+
+  // Fetch transactions for the given month and year
+  const transactions = await Transactions.find({
+    createdAt: {
+      $gte: startDate,
+      $lte: endDate,
+    },
+  }).sort({ createdAt: -1 });
+
+  if (!transactions || transactions.length === 0) {
+    return res.status(200).json({
+      success: true,
+      data: [],
+      month,
+      year,
+      message: `No transactions found for ${month}/${year}`,
+    });
+  }
+
+  return res.status(200).json({
+    success: true,
+    data: transactions,
+    month,
+    year,
+    totalTransactions: transactions.length,
+    message: "Transactions fetched successfully",
+  });
+};
+
 export const getUserBookTransactionHistory = async (req, res) => {
   const token = req.cookies.token;
   const decoded = verifyJWTToken(token);
@@ -208,6 +277,8 @@ export const makeTransactionForBook = async (req, res) => {
     settlementAmount = 0,
   } = req.body;
 
+  console.log("req.body", req.body);
+
   // Validate amounts are non-negative
   if (
     principalAmount < 0 ||
@@ -239,7 +310,11 @@ export const makeTransactionForBook = async (req, res) => {
     .map((id) => id.trim());
 
   const totalAmount =
-    principalAmount + loanInterestAmount + loanEMI + penaltyAmount;
+    principalAmount +
+    loanInterestAmount +
+    loanEMI +
+    penaltyAmount +
+    loanTakenAmount;
 
   const transaction = await Transactions.create({
     userID: userIDs,
@@ -253,6 +328,8 @@ export const makeTransactionForBook = async (req, res) => {
     totalAmount,
     transactionBy: decoded.userID,
     transactionType,
+    loanAmount: loanTakenAmount,
+    settlementAmount,
   });
 
   // Update user transaction history - use Promise.all to wait for all updates
@@ -278,7 +355,8 @@ export const makeTransactionForBook = async (req, res) => {
 
   bookDetails.transactionHistory.push(transaction._id);
   await bookDetails.save();
-
+  await transaction.save();
+  console.log("transaction", transaction);
   return res.status(200).json({
     success: true,
     data: {
@@ -718,5 +796,43 @@ export const startSessionForTransaction = async (req, res) => {
     success: true,
     data: { sessionID },
     message: "Session ID created successfully",
+  });
+};
+
+export const endSessionForTransaction = async (req, res) => {
+  const token = req.cookies.token;
+  const decoded = verifyJWTToken(token);
+
+  if (!decoded) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+
+  const { sessionID } = req.cookies;
+  dataManager.endSession(sessionID);
+
+  return res.status(200).json({
+    success: true,
+    message: "Session ended successfully",
+  });
+};
+
+export const getAdminConfiguration = async (req, res) => {
+  const token = req.cookies.token;
+  const decoded = verifyJWTToken(token);
+  if (!decoded) {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
+  const adminConfig = await Admin.findOne().select(
+    "-_id -__v -createdAt -updatedAt"
+  );
+  if (!adminConfig) {
+    return res
+      .status(404)
+      .json({ success: false, message: "Admin configuration not found" });
+  }
+  return res.status(200).json({
+    success: true,
+    data: adminConfig,
+    message: "Admin configuration fetched successfully",
   });
 };
