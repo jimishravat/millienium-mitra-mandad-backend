@@ -19,26 +19,29 @@ const app = express();
 let isDbConnected = false;
 
 // Middleware
-const allowedOrigins = [
-  'http://localhost:3000',
-  "https://millenium-mitra-mandad-frontend.onrender.com",
-  process.env.FRONTEND_URL
-].filter(Boolean);
+const allowedOrigins = new Set([
+  "http://localhost:3000",
+  "https://fe-mm.jimishravat.in"
+]);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    if (allowedOrigins.includes(origin) || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Set-Cookie'],
-  optionsSuccessStatus: 200
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(new Error("CORS blocked: missing origin"));
+      }
+
+      if (allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
 
 // Cookie parser middleware
 app.use(cookieParser());
