@@ -18,56 +18,25 @@ const app = express();
 let isDbConnected = false;
 
 // Middleware
-const allowedOrigins = new Set([
+const allowedOrigins = [
   "http://localhost:3000",
+  "http://192.168.29.123:3000",
   "https://fe-mm.jimishravat.in",
-]);
+  process.env.FRONTEND_URL,
+].filter(Boolean);
 
 app.use(
   cors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.has(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error(`CORS blocked: ${origin}`));
-    },
+    origin: allowedOrigins,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 200,
   })
 );
-
-// Cookie parser middleware
+app.use(json());
+app.use(urlencoded({ extended: true }));
 app.use(cookieParser());
-
-// JSON and URL encoded middleware
-app.use(json({ limit: "50mb" }));
-app.use(urlencoded({ extended: true, limit: "50mb" }));
-
-// Trust proxy for Render deployment
-app.set("trust proxy", 1);
-
-// Default cookie options for cross-domain cookies
-app.use((req, res, next) => {
-  // Override res.cookie to set default options for cross-domain cookies
-  const originalCookie = res.cookie;
-  res.cookie = function (name, val, options = {}) {
-    const defaultOptions = {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      domain: ".jimishravat.in",
-      path: "/",
-      maxAge: 24 * 60 * 60 * 1000,
-      ...options,
-    };
-    return originalCookie.call(this, name, val, defaultOptions);
-  };
-  next();
-});
 
 // Database connection
 connect(process.env.MONGODB_URI || "mongodb://localhost:27017/mitramandal")
