@@ -219,7 +219,7 @@ export const logoutController = async (req, res) => {
       //   httpOnly: true,
       //   secure: true, // Required for cross-domain cookies with sameSite: 'none'
       //   sameSite: "none", // Required for cross-domain cookies
-      //   path: "/",
+
 
       httpOnly: true,
       secure: true,
