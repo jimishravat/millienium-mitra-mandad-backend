@@ -785,11 +785,18 @@ export const startSessionForTransaction = async (req, res) => {
   dataManager.startSession(sessionID);
 
   const options = {
-    expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-    httpOnly: true, // Prevents XSS attacks
-    secure: process.env.NODE_ENV === "production", // HTTPS only in production
-    sameSite: "none", // CSRF protection
-    secure : true,
+    // expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+    // httpOnly: true, // Prevents XSS attacks
+    // secure: process.env.NODE_ENV === "production", // HTTPS only in production
+    // sameSite: "none", // CSRF protection
+    // secure : true,
+
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    domain: ".jimishravat.in",
+    path: "/",
+    maxAge: 24 * 60 * 60 * 1000,
   };
 
   // send this in the cookie
