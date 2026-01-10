@@ -21,7 +21,6 @@ let isDbConnected = false;
 const allowedOrigins = [
   "http://localhost:3000",
   "http://192.168.29.123:3000",
-  "https://fe-mm.jimishravat.in",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
  
